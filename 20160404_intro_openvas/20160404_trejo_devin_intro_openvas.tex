@@ -4,7 +4,7 @@
 % For adjusting margin size
 \usepackage[margin=1in]{geometry}
 % For setting bookmarks on pdf export
-\usepackage[bookmarks,bookmarksopen,bookmarksdepth=2]{hyperref} 
+\usepackage[bookmarks,bookmarksopen,bookmarksdepth=2]{hyperref}
 % For codeblocks
 \usepackage{listings}
 \usepackage{cite}
@@ -55,6 +55,17 @@
 
 \section{Summary}
 \label{sect:summary}
+Today we look into Open Vulnerability Assessment Software or OpenVAS 
+a free software maintained by volunteer industry experts. The software is
+currently under development and competes with closed source systems like
+Nessus and Nexpose. We demonstrate using a Metasploitable virtual machine
+that OpenVAS is able to detect, and propose solutions to common vulnerabilities
+listed in the global common vulnerability and exposure database (CVE). 
+Specifically we look into depth the aspects of a vsftp vulnerability as 
+well as reference the common Ingreslock and distcc backdoors. For the vsftp
+vulnerability we discuss the Metasploitable script that can take advantage
+of the backdoor and look into the source code that a hacker inserted to create
+the issue.
 
 \section{Introduction}
 \label{sect:intro}
@@ -223,17 +234,55 @@ The Ingreslock port is legitimately used for locking parts of a Ingres
 database that may be running on a server. To best mitigate this type of 
 backdoor, you can setup your firewall to block all traffic on this port. 
 
-\subsection{Analysis of \textit{ftp-vsftpd-backdoor}}
+\subsection{Analysis of \textit{distcc Remote Code Execution Vulnerability}}
 \label{sec:vul3}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=5.5in]{images/20160405-vul2-distcc.png}
+    \caption{OpenVAS distcc Vulnerability}
+    \label{fig:distcc}
+\end{figure}
+
+The Samba distcc module is included with XCode 1.5 for use with distributed
+compiling. This specific exploit will allow a remote user to gain access
+to the host machine and give them full access for the user that submitted the
+compile job. The version found on our Metasploitable machine uses distcc 2.x
+that has an the fore-mentioned exploit. The vulnerability was first pointed
+out by Ray Slakiniski in 2004. 
+
+Typically the a exploiter can use this vulnerability by running code through
+the distributed compiling environment that informs the host machine to open
+up a telnet or other remote connection. The callback technique used then will
+give a remote user a nice interface into the host. The easily solution to 
+stop this exploit from escalating is to disable the distributed compiling
+software if it is not needed. Alternatively a administrator can properly
+configure the software so only trusted machines can communicate back to
+the host. If having a white-list is not an option a administrator can create
+a directory jail so remote machines only have access to the files it needs
+to conduct the remote compile operation. Newer versions of distcc come with
+default parameters the negate the side-effects of this vulnerability. The 
+latest release of distcc is 3.1 and can be downloaded from their GitHub
+repository. OpenVas recommends that users update to later versions of
+distcc and configure the service parameters so that they are specific to
+your environment. 
+
 \section{Conclusion}
-\label{sect:conclusion} 
-% https://nmap.org/nsedoc/scripts/ftp-vsftpd-back-door.html
-% http://www.dangtrinh.com/2015/05/install-openvas-8-in-ubuntu-1404-using.html
+\label{sect:conclusion}
+OpenVAS is a powerful program that administrators can incorporate into their
+server initiation process. It would be ideal to run a scan on a newly 
+configured machine before putting it onto a susceptible network. OpenVAS also
+has the capability to actively monitor live severs in production to ensure
+new updates don't introduce new vulnerabilities. By combining OpenVAS with
+other tools like SNORT and fail2ban a user can start putting together a 
+tool chess to harden their server environment. OpenVAS is just a part of
+the tool chain that Cyber Security experts can use to protect themselves. 
 
-% http://www.openvas.org/software.html
+\nocite{*}
+\bibliographystyle{IEEEtran}
+\bibliography{20160404_biblo.bib}
 
-\section{Appendix}
+\section*{Appendix}
 \label{sect:appendix}
 \begin{lstlisting}[language=diff, 
 caption=\href{http://pastebin.com/AetT9sS5}{Diff vsftpd Vulernable and Patched Source: Pastebin},
