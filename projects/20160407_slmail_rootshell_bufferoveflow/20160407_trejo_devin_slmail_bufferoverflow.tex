@@ -1,0 +1,101 @@
+\documentclass[12pt]{article}
+% General packages
+\usepackage{amsmath, graphicx, float, tabularx, booktabs, color}
+% For adjusting margin size
+\usepackage[margin=1in]{geometry}
+% For setting bookmarks on pdf export
+\usepackage[bookmarks,bookmarksopen,bookmarksdepth=2]{hyperref}
+% For codeblocks
+\usepackage{listings}
+\usepackage{cite}
+
+%Define Colors
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+% Difine diff language
+\lstdefinelanguage{diff}{
+  morecomment=[f][\color{blue}]{@@},     % group identifier
+  morecomment=[f][\color{red}]-,         % deleted lines 
+  morecomment=[f][\color{green}]+,       % added lines
+  morecomment=[f][\color{magenta}]{---}, % Diff header lines (must appear after +,-)
+  morecomment=[f][\color{magenta}]{+++},
+}
+
+
+% Color Code
+\lstset{frame=tb,
+  language=ruby,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=4
+}
+
+% Image path location
+\graphicspath{ {images/} }
+
+\begin{document}
+
+% Title information
+\title{Buffer Overflow SLMail5.5.0 Service and Gain Root Shell}
+\author{Devin Trejo \tabularnewline devin.trejo@temple.edu }
+\date{\today}
+\maketitle
+
+\section{Summary}
+\label{sect:summary}
+
+
+\section{Introduction}
+\label{sect:intro}
+\subsection{Background SLMail5.5.0}
+\label{sec:background}
+
+\subsection{Attack Approach}
+\label{sec:approach}
+\subsection{Finding Size of Password Buffer}
+\label{sec:approachpassbuff}
+The first step for this attack is to find the size of the SLMail 5.5.0
+password buffer.
+
+Modify your script to send a username and a password to the POP3 port.  
+Be sure to receive the reply and print it after the username and password 
+are sent.
+
+Now modify the script again.  Create an array of buffers, each longer than 
+the previous.  You can fill them with the letter "A" like I did in class 
+when I demonstrated the buffer overflow.  The idea is to fuzz the password 
+field during the login process.  For each string in the buffer, send the 
+PASS command along with the buffer.  Attach your script a debugger when 
+doing this.  You are looking to overwrite the EIP register (by overflowing 
+the buffer).  How long does the buffer in your array need to be to
+overwrite EIP?
+
+
+\section{Discussion}
+\label{sect:discussion}
+
+
+\section{Conclusion}
+\label{sect:conclusion}
+
+
+\nocite{*}
+\bibliographystyle{IEEEtran}
+\bibliography{20160404_biblo.bib}
+
+\section*{Appendix}
+\label{sect:appendix}
+
+\end{document}
