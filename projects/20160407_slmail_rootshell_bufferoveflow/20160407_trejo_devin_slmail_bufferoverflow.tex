@@ -53,30 +53,30 @@
 \label{sec:background}
 SLMail is a message management tool that was advertised towards small to 
 medium sized businesses published by SeatleLabs. The software was popular 
-around the year 2001 for its ease of use and "security" of its email 
+around the year 2001 for its ease of use and ``security'' of its email 
 service \cite{SeattleLabs2001}. The service was also scalable for an 
 unlimited number of users to use. The software boast a number of security 
-features including "Limitting Viruses by identify specific files or types 
-not permitted to enter/leave the server, Reject emails containing unwanted 
-words, Avoid external use of network as relay for spam, reduce flow of 
+features including, ``Limiting viruses by identifying specific files or types 
+not permitted to enter/leave the server, rejecting emails containing unwanted 
+words, avoiding external use of server as relay for spam, reduce flow of 
 junk mail (anti-spam filter), and authenticate users before they send 
-mail" \cite{SeattleLabs2001}. The last "security" feature was instead a 
-security flaw as the password authentication had a server buffer overflow 
-vulnerability. The service is no longer continue if one were to search for 
-it on SeattleLabs current website. 
+mail'' \cite{SeattleLabs2001}. The last ``security'' feature was instead a 
+security flaw as the password authentication had a buffer overflow 
+vulnerability. The service is no longer developed as is apparent if one
+were to search for SLMail on SeattleLabs' website today. 
 
-The SLMail service is an external program outside a standard Windows Server 
-environment, that is bought and downloaded direct from SeattleLabs's website.
-The default configuration options after a succesfull installation of SLMail
+The SLMail service is an 3rd party program bought and downloaded direct
+from SeattleLabs's website and typically installed on a Windows 2k server.
+The default options after a succesfull installation of SLMail
 can be seen in figure~\ref{fig:deafconfigslmail}. The specific version we 
 concern ourselves for this project will by \textbf{SLMail5.5.0} which has a 
 known buffer overflow exploit inside the user authentication prompt. When 
 logging in over POP3, an application standard protocol for retrieving 
 emails from a remote server, SLMail will prompt for a user-name and 
 password combination associated with the desired email. If we write our 
-user-name as any string and password containing a shell program we can 
-setup and execute a script on the remote mail server. The shell script 
-written will be specially crafted to open a port on the remote server, 
+user-name as any string combination and a password containing a shell program 
+we can setup and execute the script on the remote mail server. The referenced 
+shell script will be specially crafted to open a port on the remote server, 
 that gives us access to a shell that contains administrative privileges. 
 
 \begin{figure}[ht]
@@ -93,21 +93,23 @@ The first step for this attack is to gain more information of the
 SLMail 5.5.0 service. We will implement a technique known as \textbf{fuzzing}
 which will allow us to discover information such as service versions, 
 buffer sizes, and in general the coding implementation of the remote
-service. To begin the fuzzing process to find the buffer size of the PASS
-field over the POP3 protocol, we first will write a script that loops over
-an array of increasing buffer sizes trying to determine the full length of
-the input buffer size. Since we already know there is an buffer overflow 
-exploit for these fields we can expect at some point our input to overflow 
-the allocated buffer and crash the program. The idea for this fuzzing 
-processes is to overwrite the \textbf{EIP register} or the address location 
-on the program stack containing the location in memory the program should 
-return to after executing the USER and PASS input prompt function.
+service. To begin the fuzzing process, we try to find the buffer size of the 
+PASS field used by SLMail's POP3 protocol. The first step is to write a 
+script that loops over an array of increasing buffer sizes trying to 
+determine the full length of the input buffer size. Since we already know 
+there is an buffer overflow exploit for these fields we can expect at some 
+point our input to overflow the allocated buffer and crash the program. 
+The idea and goal for this specific fuzzing processes is to overwrite the 
+\textbf{EIP register} or the address location on the program stack 
+containing the location in memory the program should return to after 
+executing the USER and PASS input prompt function.
 
 For this assignment we will examine the structure of the SLMail-5.5.0 
-program and gain insights on its construction. Note that connection of
-a direct socket connection is required. The POP3 interface seen on port 101
-is not compatible with standard the standard http protocol as is 
-demonstrated in figure~\ref{fig:smailpop3http}.
+program and gain insights on its construction. The POP3 interface seen on 
+port 101 is not compatible with standard the standard http protocol as is 
+demonstrated in figure~\ref{fig:smailpop3http}. Instead we write a Python
+script that creates a socket connection to the POP3 service and interfaces
+with the server using POP3 protocol commands. 
 
 \begin{figure}[ht]
     \centering
@@ -120,8 +122,8 @@ demonstrated in figure~\ref{fig:smailpop3http}.
 \label{sec:testenv}
 For this project we use our default test environment. We have a virtual 
 private network consisting of our Windows 2000 SP4 Server, Kali Linux
-penetrating machine, and a host machine running inside Oracle Virtual Box. 
-The server has a DHCP server running on the VM host machine. The 
+penetrating machine, and a host machine running through Oracle Virtual Box. 
+The virtual network has a DHCP server running on the VM host machine. The 
 IP/MAC addresses for each are provided in table~\ref{table:pentestnetwork}.
 
 \begin{table}[H]
@@ -161,12 +163,12 @@ below.
 \end{figure}
 
 From the scan results seen in figure~\ref{fig:nmapwindows} we can see a
-multitude of open ports and the services running behind the ports. We we are
+multitude of open ports and the services running behind the ports. What we are
 interested in is port 110 which is the standard port for POP3 operations. We
 know from our research that after installing SLMail an open POP3 port will
-open that contains the known vulnerability. The NMAP scan revealed a number
-of other services running on our Windows 2k Server instance but for this test
-we will focus on port 110. 
+open that contains the known buffer overflow vulnerability. The NMAP scan 
+revealed a number of other services running on our Windows 2k Server instance 
+but for this test we will focus on port 110. 
 
 
 \section{Conclusion}
@@ -175,9 +177,12 @@ we will focus on port 110.
 
 \nocite{*}
 \bibliographystyle{IEEEtran}
-\bibliography{20160407_project.bib}
+\bibliography{./20160407_project.bib}
 
 \section*{Appendix}
 \label{sect:appendix}
+\lstinputlisting[language=Python, 
+caption=SLMail Password Fuzzing Script,
+label=lst:passFuzz]{slmail_buffer_overflow.py}
 
 \end{document}
