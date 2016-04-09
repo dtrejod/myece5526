@@ -79,6 +79,12 @@ we can setup and execute the script on the remote mail server. The referenced
 shell script will be specially crafted to open a port on the remote server, 
 that gives us access to a shell that contains administrative privileges. 
 
+For reader reference, a reliable site to download the SLMail application 
+with the known vulnerability is from the Exploit Database website. Link
+provided below:
+
+\url{https://www.exploit-db.com/exploits/638/}
+
 \begin{figure}[ht]
     \centering
     \includegraphics[width=5.5in]{images/20160407_slmail_config.png}
@@ -170,6 +176,56 @@ open that contains the known buffer overflow vulnerability. The NMAP scan
 revealed a number of other services running on our Windows 2k Server instance 
 but for this test we will focus on port 110. 
 
+Next we begin fuzzing the server to determine at what point the program 
+will crash. A simple Python script seen in code listing~\ref{lst:passfuzz}
+will loop through an array of password buffer sizes ranging from 0 to
+the size of variable $MAX\_PASS\_BUFFER\_LEN$. Running the script eventually
+leads us to discover a buffer of size 979, as seen in 
+figure~\ref{fig:passfuzz}, will crash the remote server. We know the program
+has crashed since any sequential attempts to run the same script leads to 
+a connection failed exception as seen in figure~\ref{fig:passfuzzerr}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=5.5in]{images/20160408_python_overflow.png}
+    \caption{Python Script Fuzzing Password Field until Program Crash}
+    \label{fig:passfuzz}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=5.5in]{images/20160408_python_overflow_err.png}
+    \caption{Python Script Sequential Fuzzing Attempt}
+    \label{fig:passfuzzerr}
+\end{figure}
+
+We iterate the script multiple times, restarting the SLMail service each time
+we crash it, until we determine the average input buffer size that crashes
+the program. We tabulate the results we find in table~\ref{table:passlencrash}.
+
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{|*{2}{>{\centering}X|}}
+        \toprule
+        \textbf{Iteration #} & \textbf{PASS Buff Size on Crash} \tabularnewline
+        \midrule
+        \textbf{Iteration 1} & 979 \tabularnewline
+        \textbf{Iteration 2} & 982 \tabularnewline
+        \textbf{Iteration 3} & 982 \tabularnewline
+        \textbf{Iteration 4} & 982 \tabularnewline
+        \textbf{Iteration 5} & 982 \tabularnewline
+        \bottomrule
+    \end{tabularx}
+    \caption{PASS Buffer Input Size on SLMail Program Crash}
+    \label{table:passlencrash}
+\end{table}
+
+From the results we see that 982 is the actual consistent buffer size that 
+crashes the SLMAil POP3 program. Knowing that information is critical for
+crafting our shell script that will exploit the remote Windows 2k server.
+
+To confirm that we are indeed crashing the program by overwriting the EIP
+pointer we run SLMail program within the GDB debugger. 
 
 \section{Conclusion}
 \label{sect:conclusion}
@@ -177,12 +233,12 @@ but for this test we will focus on port 110.
 
 \nocite{*}
 \bibliographystyle{IEEEtran}
-\bibliography{./20160407_project.bib}
+\bibliography{20160407_project.bib}
 
 \section*{Appendix}
 \label{sect:appendix}
 \lstinputlisting[language=Python, 
 caption=SLMail Password Fuzzing Script,
-label=lst:passFuzz]{slmail_buffer_overflow.py}
+label=lst:passfuzz]{slmail_buffer_overflow.py}
 
 \end{document}

