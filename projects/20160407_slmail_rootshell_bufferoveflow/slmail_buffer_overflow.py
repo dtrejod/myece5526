@@ -78,6 +78,8 @@ def fuzz_pass(clientIP, clinetPORT):
         print("Received data after PASS input: \n" + data)
         
         # Reset connection for next iteration
+        print("Connection to server closed.\n" +
+                "-"*75 + "\n")
         s.close()
     return 0
 
