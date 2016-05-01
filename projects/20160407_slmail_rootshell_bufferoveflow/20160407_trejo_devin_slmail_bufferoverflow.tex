@@ -45,7 +45,13 @@
 
 \section{Summary}
 \label{sect:summary}
-
+Today we introduce the buffer overflow vulnerability by using a known case
+in the SLMail5.5.0 application released in 2001. We discuss how an exploit
+is constructed and then use Python to create a script that will overflow
+the memory buffer. By the end of the experiment we demonstrate that we have
+full control of the EIP register and write a unique string to showcase
+how we can use the input from the POP3 login prompt to overwrite this 
+register. 
 
 \section{Introduction}
 \label{sect:intro}
@@ -106,9 +112,8 @@ determine the full length of the input buffer size. Since we already know
 there is an buffer overflow exploit for these fields we can expect at some 
 point our input to overflow the allocated buffer and crash the program. 
 The idea and goal for this specific fuzzing processes is to overwrite the 
-\textbf{EIP register} or the address location on the program stack 
-containing the location in memory the program should return to after 
-executing the USER and PASS input prompt function.
+\textbf{EIP register} or the address location of the next instruction
+to execute on the stack.
 
 For this assignment we will examine the structure of the SLMail-5.5.0 
 program and gain insights on its construction. The POP3 interface seen on 
@@ -132,10 +137,66 @@ inside of Python. The Immunity Debugger is a specially crafted debugger
 built for program exploit analysis purposes as it allows monitor of the 
 program heap, and gives full access to the Assembly code of the program. 
 
+A layout of the where the stack is for a running application can be seen in 
+figure~\ref{fig:thestack}. As is seen, the stack grows up to lower memory 
+addresses as it runs. When functions are called they allocated memory via 
+the stack which is meant for short term variables. The stack created for
+a function is shown in figure~\ref{fig:fnstack}. Note how the ESP register
+keep track of the top of the stack and the EBP register keeps track of 
+the bottom of the stack. Any variables a function uses will be stored
+into the space labeled $<MyVar>$. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=5.5in]{images/windowsexploitdevel.png}
+    \caption{Function Memory Layout \cite{Czumak2013}}
+    \label{fig:thestack}
+\end{figure}
+
+As mentioned previously, we need to monitor the EIP register and note when 
+it changes before the function call has ended properly. Inside the Immunity
+Debugger there is a monitor thread that allows the end user access to CPU
+registers while an active process in running. The CPU monitor will note
+the state of the EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI, and EIP registers.
+Each register is used by the CPU to execute instructions sets accordingly. 
+The details of each register are given below.
+
+\begin{itemize}
+  \item \textbf{EAX (Accumulator Register)}: Used for ADD and SUB instructions
+  \item \textbf{EBX (Base Register)}: No special purpose and in general is 
+  used for catch-all available storage. 
+  \item \textbf{ECX (Counter Register)}: Used for loops tracking
+  \item \textbf{EDX (Data Register)}: Used for division and 
+  multiplication.
+  \item \textbf{ESI (Source Index)}: Used to store pointer to read-only 
+  location. For example, it would point to a address in memory that 
+  contains a constant string.
+  \item \textbf{EDI (Destination Index)}: Used to store the storage 
+  pointer for functions.
+  \item \textbf{EBP (Base Pointer)}: Used for keeping track of the bottom 
+  of the stack.
+  \item \textbf{ESP (Stack Pointer)}: Used for keeping track of the top 
+  of the stack.
+  \item \textbf{EIP (Instruction Pointer)}: Points to a location in memory 
+  of the next instruction to be executed for the application. 
+\end{itemize}
+
+The reason why the EIP pointer is important is because it points to the location
+in memory of the next instruction set that needs to be executed. By gaining
+control of the EIP pointer you can have a program execute any set of
+instructions placed in a specific location in memory.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=2.5in]{images/function_stack.png}
+    \caption{Function Stack Layout \cite{Czumak2013}}
+    \label{fig:fnstack}
+\end{figure}
+
 \subsection{Test Environment}
 \label{sec:testenv}
 For this project we use our default test environment. We have a virtual 
-private network consisting of our Windows 2000 SP4 Server, Kali Linux
+private network consisting of our Windows 2000 (SP4) Server, Kali Linux
 penetrating machine, and a host machine running through Oracle Virtual Box. 
 The virtual network has a DHCP server running on the VM host machine. The 
 IP/MAC addresses for each are provided in table~\ref{table:pentestnetwork}.
@@ -197,21 +258,19 @@ Next we begin fuzzing the server to determine at what point the program
 will crash. A simple Python script seen in code listing~\ref{lst:passfuzz}
 will loop through an array of password buffer sizes ranging from 0 to
 the size of variable $MAX\_PASS\_BUFFER\_LEN$. Running the script eventually
-leads us to discover a buffer of size 981, as seen in 
-figure~\ref{fig:passfuzz}, will crash the remote server. We know the program
-has crashed since any sequential attempts to run the same script leads to 
-a connection failed exception as seen in bottom half of 
-figure~\ref{fig:passfuzz}.
+leads us to discover a buffer of between the size of 2600 and 2800 will crash
+the program. As seen in figure~\ref{fig:passfuzz}, our iterative Python
+script eventually hangs as the server no longer responds.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=5.5in]{images/20160411_python_overflow.png}
+    \includegraphics[width=5.5in]{images/20160422_python_overflow.png}
     \caption{Python Script Fuzzing Password Field until Program Crash}
     \label{fig:passfuzz}
 \end{figure}
 
-\subsection{Fuzzing Attack}
-\label{sect:fuzzatt}
+\subsection{Control of EIP}
+\label{sect:controlEIP}
 
 To confirm that we are indeed crashing the program by overwriting the EIP
 pointer we run SLMail program within the Immunity debugger. 
@@ -222,14 +281,62 @@ related processes: SLadmin, SLsmtp, and SLmail. The SLsmtp process
 listens for incoming connections implementing the Simple Mail Transfer Protocol 
 whether it be on port 25, or port 110 for POP3, and delivers any input to 
 the SLmail process. SLmail is the actual vulnerable process that we will
-need to analyze. SLadmin simply is the conductor of the entire SLMail 
-application. 
+need to analyze. SLadmin simply is the conductor of the entire SLmail 
+application. To monitor SLmail, we simply attach Immunity Debugger to the 
+running process. 
 
+Next we need to fine tune our script to range between 2600 and 2800 in
+finner intervals to determine the exact point at which the EIP pointer is
+overwritten. Similar to code in code listing~\ref{lst:passfuzz}, we instead
+range range from 2600 and set $MAX\_PASS\_BUFFER\_LEN = 2800$ with a interval
+of 1. 
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=5.5in]{images/20160501_buffer2606.png}
+    \caption{Buffer = 2606 - Lower 6 Bytes of EBP Overwritten 
+      in Immunity Debugger}
+    \label{fig:ebpoverwrite}
+\end{figure}
+
+Starting when we pass 2605 As into the buffer we see the lower 4 bytes of 
+the EBP buffer containing $4141$. By passing 2607 As we see the entire EBP
+buffer containing As. Recall from figure~\ref{fig:fnstack} that the EBP 
+register lies above the EIP buffer. After overwriting the EBP buffer we 
+expect to overwrite the EIP buffer. By passing a buffer of 2609 we have
+overwritten the lower 4 bytes of the EIP buffer. To fill the entire buffer
+would require two bytes more of information for a total of 2611 bytes. We 
+have found our golden value required to overwrite the buffer. 
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=5.5in]{images/20160501_buffer2609.png}
+    \caption{Buffer = 2609 - Lower 4 Bytes of EIP Overwritten 
+      in Immunity Debugger}
+    \label{fig:eipoverwrite}
+\end{figure}
+
+To test our result of we will pass the $DEVI$ into the EIP buffer. Converting
+$DEVI$ into hex results in a 8 byte sequence of $0x44455649$. Knowing the
+x86 processor uses little endian notation we can see our EIP register
+indeed contains our expected $DEVI$ string shown in 
+figure~\ref{fig:controleip}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=5.5in]{images/20160501_controlEIP.png}
+    \caption{Control of EIP register with Expected String}
+    \label{fig:controleip}
+\end{figure}
 
 \section{Conclusion}
 \label{sect:conclusion}
-
+We have shown that the SLMail program released in 2001 is vulnerable to 
+a buffer overflow attack. Any company using this software would be vulnerable
+to having their network compromised by just having the SLMail POP3 service
+running. We will show in the next lab how an attacker can exploit this
+vulnerability to launch a script of their choosing escalating their control
+over the remote server. 
 
 \nocite{*}
 \bibliographystyle{IEEEtran}
